@@ -6,7 +6,11 @@ const mongoose = require("mongoose");
 const morgan = require("morgan");
 const cors = require("cors");
 const redis = require("redis");
+const multer = require("multer");
+const path = require("path");
+const fs = require("fs");
 const makeThread = require("./utils/makeThread");
+const checkMimeType = require("./utils/checkMimeType");
 
 const User = require("./model/User");
 
@@ -14,6 +18,7 @@ const User = require("./model/User");
 const app = express();
 
 // Middlewares
+app.use("/images", express.static(path.join(__dirname, "public/images")));
 app.use(express.json());
 app.use(
   session({
@@ -62,6 +67,19 @@ const createRedisClient = async () => {
 };
 
 createRedisClient();
+
+// Storage Middleware
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, "public/images");
+  },
+  filename: (req, file, cb) => {
+    let filename = checkMimeType(file.mimetype);
+    cb(null, filename);
+  },
+});
+
+const upload = multer({ storage: storage });
 
 // Routes
 app.get("/", (req, res) => {
@@ -198,6 +216,55 @@ app.post("/thread", async (req, res) => {
   }
 });
 
+app.post("/profileimg", async (req, res) => {
+  try {
+    const user = await User.find({ username: req.body.username });
+    const client = new TwitterApi(user.accessToken);
+
+    const currentUser = await client.currentUser();
+
+    // const originalProfileImage = TwitterApi.getProfileImageInSize(
+    //   currentUser.profile_image_url_https,
+    //   "original"
+    // );
+
+    const allBannerSizes = await client.v1.userProfileBannerSizes({
+      user_id: currentUser.id_str,
+    });
+
+    res.status(200).json(allBannerSizes);
+  } catch (error) {
+    res.status(200).json(error);
+  }
+});
+
+app.post("/storeimg", upload.single("image"), async (req, res) => {
+  try {
+    const user = await User.findOne({ username: req.query.username });
+
+    const client = new TwitterApi(user.accessToken);
+    // console.log(__dirname);
+    const mediaFile = fs.readFileSync(
+      path.join(`./public/images/${req.file.filename}`)
+    );
+    const base64image = Buffer.from(mediaFile).toString("base64");
+
+    // console.log(base64image);
+
+    const mediaId = await client.v1.uploadMedia(Buffer.from(mediaFile), {
+      mimeType: req.file.mimetype,
+    });
+    console.log(mediaId);
+    // const mediaIds = await Promise.all([
+    // ]);
+    res.status(200).json({
+      data: user,
+    });
+  } catch (error) {
+    res.status(500).json(error);
+  }
+});
+
 app.post("/user", async (req, res) => {
   try {
     const userDB = await User.findOne({ username: req.body.username });
@@ -207,7 +274,7 @@ app.post("/user", async (req, res) => {
     //   screen_name: "joefelix_a",
     // });
     // console.log(result);
-    res.status(200).json(user);
+    res.status(200).json(userDB);
   } catch (error) {
     console.log(error);
   }
