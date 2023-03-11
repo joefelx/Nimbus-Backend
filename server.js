@@ -9,8 +9,8 @@ const multer = require("multer");
 const path = require("path");
 const fs = require("fs");
 const { checkMimeType } = require("./utils");
-const { RedisClient } = require("./utils/RedisClient");
 const { authRouter, userRouter, tweetRouter } = require("./router");
+const { createRedisClient } = require("./utils/RedisClient");
 const User = require("./model/User");
 
 // Express server Initialised
@@ -40,9 +40,6 @@ mongoose.connect(
     console.log("Mongodb is connected");
   }
 );
-
-// Set RedisClient
-RedisClient();
 
 mongoose.set("strictQuery", false);
 

@@ -74,8 +74,6 @@ router.get("/twitter/callback", (req, res) => {
             });
 
             res.redirect(`http://localhost:3000/${user.username}`);
-
-            console.log(user);
           } else {
             const user = await User({
               clientId: userObject.id,
@@ -87,7 +85,8 @@ router.get("/twitter/callback", (req, res) => {
 
             const savedUser = await user.save();
 
-            res.status(200).json(savedUser);
+            // res.status(200).json(savedUser);
+            res.redirect(`http://localhost:3000/${savedUser.username}`);
           }
         } catch (err) {
           console.log(err);

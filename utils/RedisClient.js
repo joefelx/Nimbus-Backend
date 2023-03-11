@@ -1,25 +1,10 @@
 const redis = require("redis");
 
-// Constants and Values
-// let redisClient;
-
-class RedisClient {
-  constructor() {
-    this.createRedisClient();
-  }
-
-  static async createRedisClient() {
-    this.name = redis.createClient();
-    await this.connect();
-    console.log("Redis connected");
-  }
-}
-
 // Redis Cache
-// const createRedisClient = async () => {
-//   redisClient = redis.createClient();
-//   await redisClient.connect();
-//   console.log("Redis connected");
-// };
+const createRedisClient = async () => {
+  let redisClient = await redis.createClient().connect();
+  console.log("Redis connected");
+  return redisClient;
+};
 
-module.exports = { RedisClient };
+module.exports = { createRedisClient };
